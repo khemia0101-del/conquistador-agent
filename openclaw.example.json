@@ -1,0 +1,75 @@
+{
+  // OpenClaw config for the Craigslist Hunter agent
+  // Copy to ~/.openclaw/openclaw.json on your server
+
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "CHANGE_ME_TO_A_RANDOM_STRING"
+    }
+  },
+
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "nvidia/meta/llama-3.1-70b-instruct"
+      },
+      "maxConcurrent": 2
+    },
+    "list": [
+      { "id": "main", "default": true }
+    ]
+  },
+
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "nvidia": {
+        "baseUrl": "https://integrate.api.nvidia.com/v1",
+        "api": "openai-chat",
+        "models": [
+          {
+            "id": "meta/llama-3.1-70b-instruct",
+            "name": "Llama 3.1 70B (NIM)",
+            "contextWindow": 128000,
+            "maxTokens": 4096
+          }
+        ]
+      }
+    }
+  },
+
+  "channels": {
+    // Uncomment and configure whichever channel you want to talk to the agent through
+
+    // "telegram": {
+    //   "enabled": true,
+    //   "botToken": "YOUR_TELEGRAM_BOT_TOKEN",
+    //   "dmPolicy": "pairing"
+    // }
+
+    // "discord": {
+    //   "enabled": true,
+    //   "token": "YOUR_DISCORD_BOT_TOKEN"
+    // }
+  },
+
+  "tools": {
+    "web": {
+      "fetch": { "enabled": true }
+    }
+  },
+
+  "cron": {
+    "enabled": true,
+    "maxConcurrentRuns": 1,
+    "sessionRetention": "48h"
+  },
+
+  "skills": {
+    "allowBundled": true
+  }
+}

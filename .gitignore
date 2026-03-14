@@ -1,10 +1,7 @@
 __pycache__/
 *.pyc
 .env
-config/settings.local.toml
-*.egg-info/
-dist/
-.ruff_cache/
-.pytest_cache/
+openclaw.json
 data/
 logs/
+node_modules/
