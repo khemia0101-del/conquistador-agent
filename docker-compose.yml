@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  openclaw-agent:
+    build: .
+    container_name: openclaw-agent
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - agent-data:/app/data
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  agent-data:
