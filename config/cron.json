@@ -1,0 +1,11 @@
+{
+  "jobs": [
+    {
+      "name": "craigslist-scan",
+      "every": "30m",
+      "session": "isolated",
+      "message": "Run the craigslist-hunter skill: scan all configured regions for new listings, evaluate them, and take action per the decision rules. Report a summary of what you found and did.",
+      "announce": true
+    }
+  ]
+}
