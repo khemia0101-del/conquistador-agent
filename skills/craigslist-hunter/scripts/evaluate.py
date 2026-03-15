@@ -15,7 +15,7 @@ import sys
 from urllib.request import Request, urlopen
 
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
-NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
+NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "moonshotai/kimi-k2.5")
 NVIDIA_BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 
 DELIVERABLE_CAPABILITIES = [
