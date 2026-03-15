@@ -18,36 +18,60 @@ NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 NVIDIA_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
 NVIDIA_BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 
-CAPABILITIES = [
-    "data entry", "spreadsheet management", "bookkeeping",
-    "accounts payable / receivable", "invoice processing",
-    "PDF and document conversion", "database entry and cleanup",
-    "email management and organization", "CRM data entry",
-    "transcription", "web research and data collection",
-    "inventory tracking", "payroll data entry",
-    "tax document preparation", "receipt and expense categorization",
+DELIVERABLE_CAPABILITIES = [
+    "typing data from scans / PDFs / images into spreadsheets",
+    "creating, formatting, and cleaning spreadsheets (CSV, Excel)",
+    "web research compiled into reports or spreadsheets",
+    "transcription of audio/video files to text",
+    "document format conversion (PDF, Word, CSV, text)",
+    "categorizing and organizing data (receipts, expenses, inventory)",
+    "drafting text (emails, letters, form responses, templates)",
+    "proofreading and copyediting documents",
+    "compiling data from multiple sources into a single report",
+    "bookkeeping if client provides books as files (not locked in SaaS)",
+    "invoice processing if invoices are provided as PDFs/images",
 ]
 
-SYSTEM_PROMPT = """You are a job-matching evaluator. Analyze this Craigslist listing and determine
-whether these capabilities can fulfill it with 100% competence:
+AUTO_REJECT = [
+    "requires login to client's proprietary software (QuickBooks Online, Salesforce, HubSpot, etc.)",
+    "requires phone calls, video meetings, or real-time screen sharing",
+    "requires physical presence or handling physical materials",
+    "requires professional licenses (CPA, legal, notary)",
+    "requires ongoing real-time availability (be online 9-5, respond within minutes)",
+    "vague 'virtual assistant' role with no defined deliverable",
+    "requires identity verification, background check, or W-2 employment",
+    "software development, graphic design, or website building",
+]
 
-CAPABILITIES:
+SYSTEM_PROMPT = """You are a job fulfillment evaluator. Your job is NOT to assess skill match — it is to determine whether an AI agent can ACTUALLY DELIVER the finished work product for this listing with zero or minimal human intervention.
+
+The agent works by: receiving input files via email, processing them, and returning finished output files via email. It has no access to proprietary SaaS platforms, cannot attend meetings or calls, and cannot be "online" in real time.
+
+WHAT THE AGENT CAN DELIVER:
 {caps}
 
-RULES:
-1. Score 0.0-1.0 confidence the capabilities can FULLY deliver.
-2. >= 0.85 only if the task is ENTIRELY within capabilities (pure data entry, bookkeeping, etc).
-3. 0.40-0.84 for partial matches.
-4. < 0.40 for physical presence, licenses, creative work, software dev, etc.
-5. Flag red flags: upfront payments, personal financial info, MLM, unrealistic pay, vague descriptions.
+AUTO-REJECT (if listing requires ANY of these, score below 0.50):
+{rejects}
+
+EVALUATION RULES:
+1. Identify the CONCRETE DELIVERABLE. What does the client get back? A spreadsheet? A report? Organized files? If you cannot name a specific deliverable, score low.
+2. Check the WORKFLOW. Can inputs be sent as files and outputs returned as files via email? Or does it require live system access, meetings, or real-time availability?
+3. Check the SCOPE. Is the job well-defined enough to execute without extensive back-and-forth? Short, bounded tasks are ideal.
+4. Score 0.0-1.0 for AUTONOMOUS DELIVERABILITY (not just skill match):
+   - >= 0.85 (FULFILL): Clear deliverable, file-based workflow, well-defined scope, no proprietary access needed. Can start immediately upon receiving inputs.
+   - 0.50-0.84 (MAYBE): Probably doable but something is unclear — scope is vague, might need system access, or implies real-time availability without confirming.
+   - < 0.50 (SKIP): Cannot deliver — requires meetings, proprietary access, physical presence, ongoing availability, licenses, or deliverable is unclear/unbounded.
+5. Flag red flags: upfront payments, personal financial info, MLM, unrealistic pay, extremely vague with no concrete tasks.
+6. Estimate effort: small (1-4 hours), medium (4-16 hours), large (16+ hours). Prefer small/medium.
 
 Respond ONLY with valid JSON:
-{{"confidence": <float>, "matched_capabilities": [<strings>], "reasoning": "<brief>", "suggested_rate": "<rate or empty>", "red_flags": [<strings or empty>]}}"""
+{{"confidence": <float>, "deliverable": "<what the client gets back>", "workflow_feasible": <true/false>, "blockers": [<strings: things that prevent autonomous delivery>], "matched_capabilities": [<strings>], "reasoning": "<brief>", "suggested_rate": "<rate or empty>", "red_flags": [<strings or empty>], "effort_estimate": "<small|medium|large>"}}"""
 
 
 def call_nim(listing: dict) -> dict:
-    caps_str = "\n".join(f"- {c}" for c in CAPABILITIES)
-    system_msg = SYSTEM_PROMPT.format(caps=caps_str)
+    caps_str = "\n".join(f"- {c}" for c in DELIVERABLE_CAPABILITIES)
+    rejects_str = "\n".join(f"- {r}" for r in AUTO_REJECT)
+    system_msg = SYSTEM_PROMPT.format(caps=caps_str, rejects=rejects_str)
 
     user_msg = (
         f"TITLE: {listing['title']}\n"
@@ -87,7 +111,7 @@ def call_nim(listing: dict) -> dict:
         return json.loads(content.strip())
     except Exception as e:
         print(f"WARN: Evaluation failed for '{listing['title']}': {e}", file=sys.stderr)
-        return {"confidence": 0.0, "reasoning": f"Error: {e}", "red_flags": [], "matched_capabilities": []}
+        return {"confidence": 0.0, "deliverable": "unknown", "workflow_feasible": False, "blockers": [f"Evaluation error: {e}"], "reasoning": f"Error: {e}", "red_flags": [], "matched_capabilities": [], "effort_estimate": "unknown"}
 
 
 def main():
@@ -112,8 +136,13 @@ def main():
         evaluation["url"] = listing["url"]
 
         conf = evaluation.get("confidence", 0)
-        label = "HIGH" if conf >= 0.85 else "MEDIUM" if conf >= 0.40 else "LOW"
-        print(f"  -> {label} ({conf:.2f})", file=sys.stderr)
+        label = "FULFILL" if conf >= 0.85 else "MAYBE" if conf >= 0.50 else "SKIP"
+        evaluation["label"] = label
+        deliverable = evaluation.get("deliverable", "unknown")
+        blockers = evaluation.get("blockers", [])
+        print(f"  -> {label} ({conf:.2f}) deliverable={deliverable}", file=sys.stderr)
+        if blockers:
+            print(f"     blockers: {', '.join(blockers)}", file=sys.stderr)
 
         results.append(evaluation)
 
