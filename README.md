@@ -52,22 +52,31 @@ Spin up an Ubuntu 22.04+ droplet on Digital Ocean (the $6/month tier works fine)
 
 SSH into your server and run:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/khemia0101-del/conquistador-agent/claude/openclaw-craigslist-agent-4TkQl/deploy/setup-droplet.sh | bash
+```
+bash <(curl -fsSL https://bit.ly/openclaw-setup)
+```
+
+Or if you prefer the full URL:
+
+```
+bash <(curl -fsSL https://raw.githubusercontent.com/khemia0101-del/conquistador-agent/claude/openclaw-craigslist-agent-4TkQl/deploy/setup-droplet.sh)
 ```
 
 This installs Node.js 22, Python 3, OpenClaw, and clones this repo.
 
 ### 3. Configure API keys
 
-```bash
+```
 cp /opt/openclaw-agent/.env.example /opt/openclaw-agent/.env
+```
+
+```
 nano /opt/openclaw-agent/.env
 ```
 
 Fill in your keys:
 
-```env
+```
 NVIDIA_API_KEY=nvapi-xxxxxxxxxxxx
 ZOHO_SMTP_USER=agent@yourdomain.com
 ZOHO_SMTP_PASSWORD=your_zoho_app_password
@@ -75,13 +84,13 @@ ZOHO_SMTP_PASSWORD=your_zoho_app_password
 
 Then load them:
 
-```bash
+```
 export $(cat /opt/openclaw-agent/.env | grep -v '^#' | xargs)
 ```
 
 ### 4. Configure a messaging channel
 
-```bash
+```
 openclaw configure --section channels
 ```
 
@@ -89,19 +98,14 @@ Follow the prompts to connect Telegram, Discord, or WhatsApp.
 
 ### 5. Start the agent
 
-```bash
+```
 openclaw gateway run --install-daemon
 ```
 
 ### 6. Enable automatic scanning
 
-```bash
-openclaw cron add \
-  --name "craigslist-scan" \
-  --every "30m" \
-  --session isolated \
-  --message "Run the craigslist-hunter skill: scan all regions for new listings, evaluate them, and take action per the decision rules." \
-  --announce
+```
+openclaw cron add --name "craigslist-scan" --every "30m" --session isolated --announce --message "Run the craigslist-hunter skill: scan all regions for new listings, evaluate them, and take action per the decision rules."
 ```
 
 The agent now runs 24/7, scanning every 30 minutes and reporting results through your messaging channel.
@@ -156,11 +160,8 @@ Red flags (upfront payments, personal financial info, MLM schemes) trigger addit
 
 Fetches listings from Craigslist. Pure Python — no external dependencies.
 
-```bash
-python3 skills/craigslist-hunter/scripts/scrape.py \
-  --regions "newyork,sfbay,losangeles,chicago" \
-  --categories "cpg,acc,ofc" \
-  --output /tmp/listings.json
+```
+python3 skills/craigslist-hunter/scripts/scrape.py --regions newyork,sfbay --output /tmp/listings.json
 ```
 
 | Flag | Description | Default |
@@ -172,28 +173,19 @@ python3 skills/craigslist-hunter/scripts/scrape.py \
 
 ### evaluate.py
 
-Scores listings using NVIDIA NIM.
+Scores listings using NVIDIA NIM. Requires `NVIDIA_API_KEY` env var.
 
-```bash
-python3 skills/craigslist-hunter/scripts/evaluate.py \
-  --listings-file /tmp/listings.json \
-  --output /tmp/evaluated.json
 ```
-
-Requires `NVIDIA_API_KEY` environment variable.
+python3 skills/craigslist-hunter/scripts/evaluate.py --listings-file /tmp/listings.json --output /tmp/evaluated.json
+```
 
 ### send_proposal.py
 
-Sends proposal emails through Zoho Mail SMTP.
+Sends proposal emails through Zoho Mail SMTP. Requires `ZOHO_SMTP_USER` and `ZOHO_SMTP_PASSWORD` env vars.
 
-```bash
-python3 skills/craigslist-hunter/scripts/send_proposal.py \
-  --to "client@example.com" \
-  --subject "Professional Proposal: Data Entry Project" \
-  --body-file /tmp/proposal.txt
 ```
-
-Requires `ZOHO_SMTP_USER` and `ZOHO_SMTP_PASSWORD` environment variables.
+python3 skills/craigslist-hunter/scripts/send_proposal.py --to client@example.com --subject "Data Entry Proposal" --body-file /tmp/proposal.txt
+```
 
 ## Configuration
 
