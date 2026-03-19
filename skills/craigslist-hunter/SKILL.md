@@ -62,7 +62,7 @@ You are an AI agent. You can receive input files, process them, and return finis
 Run the scraper script to get current listings:
 
 ```bash
-python3 skills/craigslist-hunter/scripts/scrape.py --regions "newyork,sfbay,losangeles,chicago" --categories "cpg,acc,ofc"
+python3 skills/craigslist-hunter/scripts/scrape.py --regions "newyork,sfbay,losangeles,chicago" --categories "cpg,acc,ofc" --output /tmp/cl_listings.json
 ```
 
 The `--regions` flag accepts any Craigslist subdomain (e.g., `boston`, `seattle`, `miami`).
