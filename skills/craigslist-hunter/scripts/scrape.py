@@ -25,7 +25,7 @@ class SearchResultParser(HTMLParser):
         super().__init__()
         self.results = []
         self._in_link = False
-        self._current = {}
+        self._current = None
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
@@ -50,7 +50,7 @@ class SearchResultParser(HTMLParser):
             self._in_link = False
             if self._current.get("url") and self._current.get("title"):
                 self.results.append(dict(self._current))
-            self._current = {}
+            self._current = None
 
 
 class DetailParser(HTMLParser):

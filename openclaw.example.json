@@ -60,6 +60,9 @@
   "tools": {
     "web": {
       "fetch": { "enabled": true }
+    },
+    "shell": {
+      "enabled": true
     }
   },
 
